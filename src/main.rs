@@ -1,9 +1,10 @@
 mod lexer;
 
-use std::io::{prelude::Read, self};
+use std::io;
+use std::io::prelude::Read;
 
-use lexer::Token;
 use pico_ml::Config;
+use pico_ml::Parser;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -31,13 +32,6 @@ fn main() -> io::Result<()> {
         }
     };
 
-
-    for t in lexer::Lexer::new(&s) {
-        match t {
-            Token::Unknown => panic!("Lex error"),
-            Token::Whitespace => (),
-            _ => println!("{:?}", t),
-        }
-    }
+    Parser::new(&s).check_prog();
     Ok(())
 }

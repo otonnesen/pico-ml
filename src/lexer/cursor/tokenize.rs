@@ -2,17 +2,18 @@ use Token::*;
 
 use super::Cursor;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
     Add,
     And,
     Arrow,
     Assign,
-    EmptyList,
+    Boolean(bool),
+    Cons,
     Decimal(f32),
     Div,
-    Cons,
     Else,
+    EmptyList,
     Eq,
     FAdd,
     FDiv,
@@ -40,15 +41,19 @@ pub enum Token {
     Then,
     Unknown,
     Whitespace,
+    Wildcard,
     With,
 }
 
 impl Cursor<'_> {
     pub fn advance_token(&mut self) -> Option<Token> {
+        if is_whitespace(self.first()) {
+            self.eat_whitespace();
+        }
         Some(match self.bump()? {
             c if is_digit(c) => self.int_or_decimal(),
             c if is_id_start(c) => self.ident(),
-            c if is_whitespace(c) => self.eat_whitespace(),
+            // c if is_whitespace(c) => self.eat_whitespace(),
             '(' => Lparen,
             ')' => Rparen,
             '+' => match self.first() {
@@ -89,8 +94,9 @@ impl Cursor<'_> {
                     Le
                 }
                 '>' => {
-                    self.bump();
-                    Unknown
+                    todo!();
+                    // self.bump();
+                    // Unknown
                 }
                 _ => Lt,
             },
@@ -143,6 +149,7 @@ impl Cursor<'_> {
                 }
                 _ => Unknown,
             },
+            '_' => Wildcard,
             _ => Unknown,
         })
     }
@@ -153,20 +160,19 @@ impl Cursor<'_> {
         loop {
             match self.first() {
                 c if is_digit(c) => {
-                    self.bump();
                     n.push(c);
+                    self.bump();
                 }
                 '.' => {
                     decimal = true;
-                    self.bump();
                     n.push('.');
+                    self.bump();
+                }
+                _ if decimal => {
+                    return Decimal(n.parse().unwrap());
                 }
                 _ => {
-                    if decimal {
-                        return Decimal(n.parse().unwrap());
-                    } else {
-                        return Integer(n.parse().unwrap());
-                    }
+                    return Integer(n.parse().unwrap());
                 }
             }
         }
@@ -193,6 +199,8 @@ impl Cursor<'_> {
             "fun" => Fun,
             "match" => Match,
             "with" => With,
+            "true" => Boolean(true),
+            "false" => Boolean(false),
             i => Ident(i.to_string()),
         }
     }

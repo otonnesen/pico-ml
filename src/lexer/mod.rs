@@ -4,6 +4,7 @@ use cursor::Cursor;
 
 pub use cursor::Token;
 
+#[derive(Debug)]
 pub struct Lexer<'a> {
     cursor: Cursor<'a>,
 }
