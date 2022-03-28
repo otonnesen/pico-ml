@@ -1,10 +1,7 @@
-mod lexer;
-
 use std::io;
 use std::io::prelude::Read;
 
-use pico_ml::Config;
-use pico_ml::Parser;
+use pico_ml::{Config, Parser};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -32,6 +29,12 @@ fn main() -> io::Result<()> {
         }
     };
 
-    Parser::new(&s).check_prog();
+    let program = Parser::new(&s).program().unwrap_or_else(|err| {
+        eprintln!("Couldn't parse input: {}", err);
+        std::process::exit(1);
+    });
+
+    println!("{:?}", program);
+
     Ok(())
 }

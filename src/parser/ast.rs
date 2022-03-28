@@ -1,4 +1,3 @@
-#![allow(unused)]
 pub type Ident = String;
 
 #[derive(Debug, Clone)]
@@ -59,5 +58,3 @@ pub enum Clause {
     Clause(Pattern, Expr),
     Cont(Box<Clause>, Box<Clause>),
 }
-
-pub type Program = Vec<Expr>;

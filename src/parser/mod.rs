@@ -2,7 +2,7 @@ mod ast;
 
 use crate::lexer::{Lexer, Token};
 
-use self::ast::{BinaryOperator, Clause, Expr, Ident, Pattern, Program};
+use self::ast::{BinaryOperator, Clause, Expr, Ident, Pattern};
 
 #[derive(Debug)]
 pub struct Parser {
@@ -36,22 +36,18 @@ impl<'a> Parser {
 
     fn paren_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let mut new_cur = cur;
-        {
-            let lparen_tok = self.tokens.get(new_cur);
-            match lparen_tok {
-                Some(&Token::Lparen) => (),
-                _ => return Err(format!("Expected Token::Lparen, got {:?}", lparen_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Lparen) => (),
+            Some(v) => return Err(format!("Expected Token::Lparen, got {:?}", *v)),
+            None => return Err("Error parsing paren_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (expr, mut new_cur) = self.expr(new_cur)?;
-        {
-            let rparen_tok = self.tokens.get(new_cur);
-            match rparen_tok {
-                Some(&Token::Rparen) => (),
-                _ => return Err(format!("Expected Token::Rparen, got {:?}", rparen_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Rparen) => (),
+            Some(v) => return Err(format!("Expected Token::Rparen, got {:?}", *v)),
+            None => return Err("Error parsing paren_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         Ok((expr, new_cur))
     }
@@ -63,7 +59,7 @@ impl<'a> Parser {
         if let Ok((id, new_cur)) = self.ident(cur) {
             return Ok((Expr::Ident(id), new_cur));
         }
-        if let e@Ok(_) = self.paren_expr(cur) {
+        if let e @ Ok(_) = self.paren_expr(cur) {
             return e;
         }
 
@@ -72,31 +68,25 @@ impl<'a> Parser {
 
     fn if_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let mut new_cur = cur;
-        {
-            let if_tok = self.tokens.get(new_cur);
-            match if_tok {
-                Some(&Token::If) => (),
-                _ => return Err(format!("Expected Token::If, got {:?}", if_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::If) => (),
+            Some(v) => return Err(format!("Expected Token::If, got {:?}", *v)),
+            None => return Err("Error parsing if_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (cond_expr, mut new_cur) = self.expr(new_cur)?;
-        {
-            let then_tok = self.tokens.get(new_cur);
-            match then_tok {
-                Some(&Token::Then) => (),
-                _ => return Err(format!("Expected Token::If, got {:?}", then_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Then) => (),
+            Some(v) => return Err(format!("Expected Token::Then, got {:?}", *v)),
+            None => return Err("Error parsing if_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (then_expr, mut new_cur) = self.expr(new_cur)?;
-        {
-            let else_tok = self.tokens.get(new_cur);
-            match else_tok {
-                Some(&Token::Else) => (),
-                _ => return Err(format!("Expected Token::If, got {:?}", else_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Else) => (),
+            Some(v) => return Err(format!("Expected Token::Else, got {:?}", *v)),
+            None => return Err("Error parsing if_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (else_expr, new_cur) = self.expr(new_cur)?;
         Ok((
@@ -111,91 +101,84 @@ impl<'a> Parser {
 
     fn match_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let mut new_cur = cur;
-        {
-            let match_tok = self.tokens.get(new_cur);
-            match match_tok {
-                Some(&Token::Match) => (),
-                _ => return Err(format!("Expected Token::Match, got {:?}", match_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Match) => (),
+            Some(v) => return Err(format!("Expected Token::Match, got {:?}", *v)),
+            None => return Err("Error parsing match_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (expr, mut new_cur) = self.expr(new_cur)?;
-        {
-            let with_tok = self.tokens.get(new_cur);
-            match with_tok {
-                Some(&Token::With) => (),
-                _ => return Err(format!("Expected Token::With, got {:?}", with_tok)),
-            };
-            new_cur += 1;
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::With) => (),
+            Some(v) => return Err(format!("Expected Token::With, got {:?}", *v)),
+            None => return Err("Error parsing match_expr: end of token stream".to_string()),
+        };
+        new_cur += 1;
         let (clause, new_cur) = self.clause(new_cur)?;
         Ok((Expr::MatchWith(Box::new(expr), Box::new(clause)), new_cur))
     }
 
     fn fun_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let mut new_cur = cur;
-        {
-            let fun_tok = self.tokens.get(new_cur);
-            match fun_tok {
-                Some(&Token::Fun) => (),
-                _ => return Err(format!("Expected Token::Fun, got {:?}", fun_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Fun) => (),
+            Some(v) => return Err(format!("Expected Token::Fun, got {:?}", *v)),
+            None => return Err("Error parsing fun_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (param, mut new_cur) = self.ident(new_cur)?;
-        {
-            let arrow_tok = self.tokens.get(new_cur);
-            match arrow_tok {
-                Some(&Token::Arrow) => (),
-                _ => return Err(format!("Expected Token::Arrow, got {:?}", arrow_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Arrow) => (),
+            Some(v) => return Err(format!("Expected Token::Arrow, got {:?}", *v)),
+            None => return Err("Error parsing fun_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (body, new_cur) = self.expr(new_cur)?;
         Ok((Expr::Fun(param, Box::new(body)), new_cur))
     }
 
-    fn letrec_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        todo!()
-    }
-
     fn let_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let mut new_cur = cur;
-        {
-            let let_tok = self.tokens.get(new_cur);
-            match let_tok {
-                Some(&Token::Let) => (),
-                _ => return Err(format!("Expected Token::Fun, got {:?}", let_tok)),
-            };
-        }
-        new_cur += 1;
         match self.tokens.get(new_cur) {
-            Some(&Token::Rec) => return self.letrec_expr(cur),
+            Some(&Token::Let) => (),
+            Some(v) => return Err(format!("Expected Token::Let, got {:?}", *v)),
+            None => return Err("Error parsing let_expr: end of token stream".to_string()),
+        };
+        new_cur += 1;
+        let mut rec = false;
+        match self.tokens.get(new_cur) {
+            Some(&Token::Rec) => {
+                new_cur += 1;
+                rec = true;
+            }
             _ => (),
         }
         let (id, mut new_cur) = self.ident(new_cur)?;
-        {
-            let assign_tok = self.tokens.get(new_cur);
-            match assign_tok {
-                Some(&Token::Assign) => (),
-                _ => return Err(format!("Expected Token::Assign, got {:?}", assign_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::Assign) => (),
+            Some(v) => return Err(format!("Expected Token::Assign, got {:?}", *v)),
+            None => return Err("Error parsing let_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (bound_expr, mut new_cur) = self.expr(new_cur)?;
-        {
-            let in_tok = self.tokens.get(new_cur);
-            match in_tok {
-                Some(&Token::In) => (),
-                _ => return Err(format!("Expected Token::In, got {:?}", in_tok)),
-            };
-        }
+        match self.tokens.get(new_cur) {
+            Some(&Token::In) => (),
+            Some(v) => return Err(format!("Expected Token::In, got {:?}", *v)),
+            None => return Err("Error parsing let_expr: end of token stream".to_string()),
+        };
         new_cur += 1;
         let (body_expr, new_cur) = self.expr(new_cur)?;
-        Ok((
-            Expr::LetIn(id, Box::new(bound_expr), Box::new(body_expr)),
-            new_cur,
-        ))
+        if rec {
+            Ok((
+                Expr::LetRecIn(id, Box::new(bound_expr), Box::new(body_expr)),
+                new_cur,
+            ))
+        } else {
+            Ok((
+                Expr::LetIn(id, Box::new(bound_expr), Box::new(body_expr)),
+                new_cur,
+            ))
+        }
     }
 
     fn clause(&self, cur: usize) -> Result<(Clause, usize), String> {
@@ -213,7 +196,8 @@ impl<'a> Parser {
         let (pat, mut new_cur) = self.pat(cur)?;
         match self.tokens.get(new_cur) {
             Some(&Token::Arrow) => (),
-            _ => return Err("Error parsing clause".to_string()),
+            Some(v) => return Err(format!("Expected Token::Arrow, got {:?}", *v)),
+            None => return Err("Error parsing clause".to_string()),
         };
         new_cur += 1;
         let (expr, new_cur) = self.expr(new_cur)?;
@@ -239,33 +223,53 @@ impl<'a> Parser {
         match self.tokens.get(cur) {
             Some(&Token::EmptyList) => Ok((Pattern::EmptyList, cur + 1)),
             Some(&Token::Wildcard) => Ok((Pattern::Wildcard, cur + 1)),
-            _ => Err("Error parsing pattern".to_string()),
+            Some(v) => Err(format!(
+                "Error parsing pattern: expected Token::EmptyList or Token::Wildcard, got {:?}",
+                v
+            )),
+            None => Err("Error parsing pattern: end of token stream".to_string()),
         }
     }
 
     fn expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        let (left, new_cur) = self.expr_start(cur)?;
-        if let Ok((right, new_cur)) = self.expr(new_cur) {
+        if let e @ Ok(_) = self.cons_expr(cur) {
+            return e;
+        }
+        if let e @ Ok(_) = self.kwd_expr(cur) {
+            return e;
+        }
+
+        Err("Error parsing expr".to_string())
+    }
+
+    fn funapp_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
+        let (left, new_cur) = self.eq_expr(cur)?;
+        if let Ok((right, new_cur)) = self.eq_expr(new_cur) {
             Ok((Expr::FunApp(Box::new(left), Box::new(right)), new_cur))
         } else {
             Ok((left, new_cur))
         }
     }
 
-    fn expr_start(&self, cur: usize) -> Result<(Expr, usize), String> {
+    fn kwd_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         match self.tokens.get(cur) {
             Some(&Token::If) => self.if_expr(cur),
             Some(&Token::Match) => self.match_expr(cur),
             Some(&Token::Fun) => self.fun_expr(cur),
             Some(&Token::Let) => self.let_expr(cur),
-            _ => self.cons_expr(cur),
+            Some(v) => Err(format!(
+                "Error parsing kwd expr: expected one of {{If, Match, Fun, Let}}, got {:?}",
+                *v
+            )),
+            None => Err("Error parsing kwd expr: end of token stream".to_string()),
         }
     }
 
     fn cons_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        let (left, mut new_cur) = self.eq_expr(cur)?;
-        if let _ = self.tokens.get(new_cur) {
-            return Ok((left, new_cur));
+        let (left, mut new_cur) = self.funapp_expr(cur)?;
+        match self.tokens.get(new_cur) {
+            Some(&Token::Cons) => (),
+            _ => return Ok((left, new_cur)),
         };
         new_cur += 1;
         let (right, new_cur) = self.cons_expr(new_cur)?;
@@ -353,16 +357,10 @@ impl<'a> Parser {
         ))
     }
 
-    pub fn check_prog(self) {
-        let cur = 0;
-        if let Ok((expr, new_cur)) = self.expr(cur) {
-            println!("expr: {:?}\nnew_cur: {}", expr, new_cur);
-        } else {
-            println!("Failed");
-        };
-    }
-
-    pub fn program(self) -> Option<Program> {
-        todo!();
+    pub fn program(self) -> Result<Expr, String> {
+        match self.expr(0) {
+            Ok((expr, _)) => Ok(expr),
+            Err(msg) => Err(msg),
+        }
     }
 }
