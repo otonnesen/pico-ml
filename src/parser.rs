@@ -257,7 +257,7 @@ impl<'a> Parser {
     }
 
     fn funapp_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        let (left, new_cur) = self.eq_expr(cur)?;
+        let (left, new_cur) = self.bool_expr(cur)?;
         if let Ok((right, new_cur)) = self.funapp_expr(new_cur) {
             Ok((Expr::FunApp(Box::new(left), Box::new(right)), new_cur))
         } else {
@@ -290,6 +290,22 @@ impl<'a> Parser {
         Ok((Expr::Cons(Box::new(left), Box::new(right)), new_cur))
     }
 
+    fn bool_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
+        let (left, mut new_cur) = self.eq_expr(cur)?;
+        let op = self.tokens.get(new_cur);
+        let bin_op = match op {
+            Some(&Token::And) => BinaryOperator::And,
+            Some(&Token::Or) => BinaryOperator::Or,
+            _ => return Ok((left, new_cur)),
+        };
+        new_cur += 1;
+        let (right, new_cur) = self.bool_expr(new_cur)?;
+        Ok((
+            Expr::BinaryOp(bin_op, Box::new(left), Box::new(right)),
+            new_cur,
+        ))
+    }
+
     fn eq_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let (left, mut new_cur) = self.ineq_expr(cur)?;
         let op = self.tokens.get(new_cur);
@@ -307,7 +323,7 @@ impl<'a> Parser {
     }
 
     fn ineq_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        let (left, mut new_cur) = self.bool_expr(cur)?;
+        let (left, mut new_cur) = self.addsub_expr(cur)?;
         let bin_op = match self.tokens.get(new_cur) {
             Some(&Token::Lt) => BinaryOperator::Lt,
             Some(&Token::Le) => BinaryOperator::Le,
@@ -317,22 +333,6 @@ impl<'a> Parser {
         };
         new_cur += 1;
         let (right, new_cur) = self.ineq_expr(new_cur)?;
-        Ok((
-            Expr::BinaryOp(bin_op, Box::new(left), Box::new(right)),
-            new_cur,
-        ))
-    }
-
-    fn bool_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
-        let (left, mut new_cur) = self.addsub_expr(cur)?;
-        let op = self.tokens.get(new_cur);
-        let bin_op = match op {
-            Some(&Token::And) => BinaryOperator::And,
-            Some(&Token::Or) => BinaryOperator::Or,
-            _ => return Ok((left, new_cur)),
-        };
-        new_cur += 1;
-        let (right, new_cur) = self.bool_expr(new_cur)?;
         Ok((
             Expr::BinaryOp(bin_op, Box::new(left), Box::new(right)),
             new_cur,
