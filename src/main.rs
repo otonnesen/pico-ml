@@ -1,5 +1,5 @@
 use std::io;
-use std::io::prelude::Read;
+use std::io::Read;
 
 use pico_ml::{pprint, Config, Parser};
 
@@ -11,6 +11,19 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     });
 
+    let s = get_input(config);
+
+    let program = Parser::new(&s).program().unwrap_or_else(|err| {
+        eprintln!("Couldn't parse input: {}", err);
+        std::process::exit(1);
+    });
+
+    pprint(program, 2);
+
+    Ok(())
+}
+
+fn get_input(config: Config) -> String {
     let mut s = String::new();
     if let "-" = config.filename.as_str() {
         if let Err(why) = std::io::stdin().read_to_string(&mut s) {
@@ -28,13 +41,5 @@ fn main() -> io::Result<()> {
             std::process::exit(1);
         }
     };
-
-    let program = Parser::new(&s).program().unwrap_or_else(|err| {
-        eprintln!("Couldn't parse input: {}", err);
-        std::process::exit(1);
-    });
-
-    pprint(program, 2);
-
-    Ok(())
+    s
 }

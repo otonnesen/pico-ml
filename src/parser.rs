@@ -1,11 +1,7 @@
-mod ast;
-mod pprint;
-
-pub use pprint::pprint;
-
 use crate::lexer::{Lexer, Token};
 
-use ast::{BinaryOperator, Clause, Expr, Ident, Pattern, UnaryOperator};
+use crate::ast::{BinaryOperator, Clause, Ident, Pattern, UnaryOperator};
+use crate::ast::Expr;
 
 #[derive(Debug)]
 pub struct Parser {

@@ -1,5 +1,4 @@
-use super::ast::Pattern;
-use crate::parser::{Clause, Expr};
+use crate::ast::{Clause, Expr, Pattern};
 
 fn indent(spaces: usize, indent: usize) -> String {
     " ".to_string().repeat(spaces * indent)
@@ -19,7 +18,7 @@ fn pprint_pat(pat: Pattern, spaces: usize, indent_size: usize) {
     }
 }
 
-fn pprint_clause(clause: super::ast::Clause, spaces: usize, indent_size: usize) {
+fn pprint_clause(clause: Clause, spaces: usize, indent_size: usize) {
     match clause {
         Clause::Clause(p, e) => {
             println!("{}Clause(", indent(spaces, indent_size));
