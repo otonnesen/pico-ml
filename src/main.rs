@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Read;
 
-use pico_ml::{pprint, Config, Parser};
+use pico_ml::{pprint, typecheck, Config, Parser};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -19,6 +19,13 @@ fn main() -> io::Result<()> {
     });
 
     pprint(&program, 2);
+
+    let prog_type = typecheck(&program).unwrap_or_else(|err| {
+        eprintln!("Error typechecking: {}", err);
+        std::process::exit(1);
+    });
+
+    println!("{:?}", prog_type);
 
     Ok(())
 }

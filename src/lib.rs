@@ -2,10 +2,13 @@ pub mod ast;
 mod lexer;
 mod parser;
 mod pprint;
+mod typechecker;
 
 pub use parser::Parser;
 
 pub use pprint::pprint;
+
+pub use typechecker::typecheck;
 
 pub struct Config {
     pub filename: String,
