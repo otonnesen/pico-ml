@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     });
 
-    pprint(program, 2);
+    pprint(&program, 2);
 
     Ok(())
 }
