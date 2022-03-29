@@ -345,6 +345,8 @@ impl<'a> Parser {
         let bin_op = match op {
             Some(&Token::Add) => BinaryOperator::Plus,
             Some(&Token::Sub) => BinaryOperator::Minus,
+            Some(&Token::FAdd) => BinaryOperator::FPlus,
+            Some(&Token::FSub) => BinaryOperator::FMinus,
             _ => return Ok((left, new_cur)),
         };
         new_cur += 1;
@@ -361,6 +363,8 @@ impl<'a> Parser {
         let bin_op = match op {
             Some(&Token::Mul) => BinaryOperator::Mul,
             Some(&Token::Div) => BinaryOperator::Div,
+            Some(&Token::FMul) => BinaryOperator::FMul,
+            Some(&Token::FDiv) => BinaryOperator::FDiv,
             _ => return Ok((left, new_cur)),
         };
         new_cur += 1;
