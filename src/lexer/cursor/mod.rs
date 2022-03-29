@@ -37,7 +37,6 @@ impl<'a> Cursor<'a> {
         self.prev
     }
 
-    #[must_use]
     fn chars(&self) -> Chars {
         self.chars.clone()
     }

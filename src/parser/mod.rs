@@ -1,8 +1,11 @@
 mod ast;
+mod pprint;
+
+pub use pprint::pprint;
 
 use crate::lexer::{Lexer, Token};
 
-use self::ast::{BinaryOperator, Clause, Expr, Ident, Pattern};
+use ast::{BinaryOperator, Clause, Expr, Ident, Pattern, UnaryOperator};
 
 #[derive(Debug)]
 pub struct Parser {
@@ -49,7 +52,22 @@ impl<'a> Parser {
             None => return Err("Error parsing paren_expr: end of token stream".to_string()),
         };
         new_cur += 1;
-        Ok((expr, new_cur))
+        Ok((Expr::Paren(Box::new(expr)), new_cur))
+    }
+
+    fn unaryop_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
+        let mut new_cur = cur;
+        let un_op = match self.tokens.get(new_cur) {
+            Some(&Token::Sub) => UnaryOperator::Neg,
+            Some(&Token::FSub) => UnaryOperator::FNeg,
+            Some(v) => return Err(format!("Expected one of {{Sub, FSub}}, got {:?}", *v)),
+            None => return Err("Error parsing unaryop_expr: end of token stream".to_string()),
+        };
+        new_cur += 1;
+
+        let (expr, new_cur) = self.atom(new_cur)?;
+
+        Ok((Expr::UnaryOp(un_op, Box::new(expr)), new_cur))
     }
 
     fn atom(&self, cur: usize) -> Result<(Expr, usize), String> {
@@ -146,12 +164,9 @@ impl<'a> Parser {
         };
         new_cur += 1;
         let mut rec = false;
-        match self.tokens.get(new_cur) {
-            Some(&Token::Rec) => {
-                new_cur += 1;
-                rec = true;
-            }
-            _ => (),
+        if let Some(&Token::Rec) = self.tokens.get(new_cur) {
+            new_cur += 1;
+            rec = true;
         }
         let (id, mut new_cur) = self.ident(new_cur)?;
         match self.tokens.get(new_cur) {
@@ -184,7 +199,7 @@ impl<'a> Parser {
     fn clause(&self, cur: usize) -> Result<(Clause, usize), String> {
         let (left, mut new_cur) = self.clause_start(cur)?;
         match self.tokens.get(new_cur) {
-            Some(&Token::Or) => (),
+            Some(&Token::MatchOr) => (),
             _ => return Ok((left, new_cur)),
         };
         new_cur += 1;
@@ -238,13 +253,16 @@ impl<'a> Parser {
         if let e @ Ok(_) = self.kwd_expr(cur) {
             return e;
         }
+        if let e @ Ok(_) = self.unaryop_expr(cur) {
+            return e;
+        }
 
         Err("Error parsing expr".to_string())
     }
 
     fn funapp_expr(&self, cur: usize) -> Result<(Expr, usize), String> {
         let (left, new_cur) = self.eq_expr(cur)?;
-        if let Ok((right, new_cur)) = self.eq_expr(new_cur) {
+        if let Ok((right, new_cur)) = self.funapp_expr(new_cur) {
             Ok((Expr::FunApp(Box::new(left), Box::new(right)), new_cur))
         } else {
             Ok((left, new_cur))
@@ -313,8 +331,8 @@ impl<'a> Parser {
         let (left, mut new_cur) = self.addsub_expr(cur)?;
         let op = self.tokens.get(new_cur);
         let bin_op = match op {
-            Some(&Token::Add) => BinaryOperator::Plus,
-            Some(&Token::Sub) => BinaryOperator::Minus,
+            Some(&Token::And) => BinaryOperator::And,
+            Some(&Token::Or) => BinaryOperator::Or,
             _ => return Ok((left, new_cur)),
         };
         new_cur += 1;

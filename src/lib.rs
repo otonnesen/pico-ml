@@ -1,7 +1,7 @@
 mod lexer;
 mod parser;
 
-pub use parser::Parser;
+pub use parser::{pprint, Parser};
 
 pub struct Config {
     pub filename: String,
