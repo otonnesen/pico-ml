@@ -46,42 +46,42 @@ fn compat(t1: &Type, t2: &Type) -> bool {
 
 fn op_compat(op: &BinaryOperator, t1: &Type, t2: &Type) -> bool {
     match op {
-        BinaryOperator::Plus => matches!(t1, Type::Int) && matches!(t2, Type::Int),
-        BinaryOperator::FPlus => matches!(t1, Type::Dec) && matches!(t2, Type::Dec),
-        BinaryOperator::Minus => matches!(t1, Type::Int) && matches!(t2, Type::Int),
-        BinaryOperator::FMinus => matches!(t1, Type::Dec) && matches!(t2, Type::Dec),
-        BinaryOperator::Mul => matches!(t1, Type::Int) && matches!(t2, Type::Int),
-        BinaryOperator::FMul => matches!(t1, Type::Dec) && matches!(t2, Type::Dec),
-        BinaryOperator::Div => matches!(t1, Type::Int) && matches!(t2, Type::Int),
-        BinaryOperator::FDiv => matches!(t1, Type::Dec) && matches!(t2, Type::Dec),
+        BinaryOperator::Plus => compat(t1, &Type::Int) && compat(t2, &Type::Int),
+        BinaryOperator::FPlus => compat(t1, &Type::Dec) && compat(t2, &Type::Dec),
+        BinaryOperator::Minus => compat(t1, &Type::Int) && compat(t2, &Type::Int),
+        BinaryOperator::FMinus => compat(t1, &Type::Dec) && compat(t2, &Type::Dec),
+        BinaryOperator::Mul => compat(t1, &Type::Int) && compat(t2, &Type::Int),
+        BinaryOperator::FMul => compat(t1, &Type::Dec) && compat(t2, &Type::Dec),
+        BinaryOperator::Div => compat(t1, &Type::Int) && compat(t2, &Type::Int),
+        BinaryOperator::FDiv => compat(t1, &Type::Dec) && compat(t2, &Type::Dec),
         BinaryOperator::Lt => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
         }
         BinaryOperator::Le => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
         }
         BinaryOperator::Gt => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
         }
         BinaryOperator::Ge => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
         }
         BinaryOperator::Eq => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
-                || (matches!(t1, Type::Bool) && matches!(t2, Type::Bool))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
+                || (compat(t1, &Type::Bool) && compat(t2, &Type::Bool))
         }
         BinaryOperator::Neq => {
-            (matches!(t1, Type::Int) && matches!(t2, Type::Int))
-                || (matches!(t1, Type::Dec) && matches!(t2, Type::Dec))
-                || (matches!(t1, Type::Bool) && matches!(t2, Type::Bool))
+            (compat(t1, &Type::Int) && compat(t2, &Type::Int))
+                || (compat(t1, &Type::Dec) && compat(t2, &Type::Dec))
+                || (compat(t1, &Type::Bool) && compat(t2, &Type::Bool))
         }
-        BinaryOperator::And => matches!(t1, Type::Bool) && matches!(t2, Type::Bool),
-        BinaryOperator::Or => matches!(t1, Type::Bool) && matches!(t2, Type::Bool),
+        BinaryOperator::And => compat(t1, &Type::Bool) && compat(t2, &Type::Bool),
+        BinaryOperator::Or => compat(t1, &Type::Bool) && compat(t2, &Type::Bool),
     }
 }
 
@@ -150,12 +150,14 @@ fn typecheck_expr(expr: &Expr, env: &HashMap<Ident, Type>) -> Result<Type, Strin
         }
         Expr::Cons(hd, tl) => {
             let hd_t = typecheck_expr(hd, env)?;
-            let tl_t = &typecheck_expr(tl, env)?;
-            if let Type::List(l_t) = tl_t {
+            let tl_t = typecheck_expr(tl, env)?;
+            if let Type::List(l_t) = &tl_t {
                 if compat(&hd_t, &l_t) {
                     return Ok(Type::List(Box::new(hd_t)));
                 }
-            }
+            } else if let Type::Any = &tl_t {
+                    return Ok(Type::List(Box::new(Type::Any)));
+                }
             Err(format!(
                 "Incompatible types in cons: {:?}::{:?}",
                 hd_t, tl_t
@@ -166,10 +168,9 @@ fn typecheck_expr(expr: &Expr, env: &HashMap<Ident, Type>) -> Result<Type, Strin
             let then_t = typecheck_expr(then_expr, env)?;
             let else_t = typecheck_expr(else_expr, env)?;
 
-            if !matches!(cond_t, Type::Bool) {
+            if !compat(&cond_t, &Type::Bool) {
                 return Err(format!("If condition must be bool, got {:?}", cond_t));
             }
-
             if compat(&then_t, &else_t) {
                 Ok(then_t)
             } else {
@@ -189,12 +190,22 @@ fn typecheck_expr(expr: &Expr, env: &HashMap<Ident, Type>) -> Result<Type, Strin
         Expr::FunApp(fun, arg) => {
             // TODO: This has to be wrong
             let arg_t = typecheck_expr(arg, env)?;
-            if let Type::Fun(a_t, r_t) = typecheck_expr(fun, env)? {
+            let fun_t = typecheck_expr(fun, env)?;
+            if let Type::Fun(a_t, r_t) = fun_t {
                 if compat(&a_t, &arg_t) {
-                    return Ok(*r_t);
+                    Ok(*r_t)
+                } else {
+                    Err(format!(
+                        "Incompatible types in function application: {} != {}",
+                        arg_t, a_t
+                    ))
                 }
+            } else if let Type::Any = fun_t {
+                Ok(Type::Any)
+            } else {
+                println!("{:?}", env);
+                Err(format!("Function must have type Fun, got {:?}", fun_t))
             }
-            Err("Incompatible types in function application".to_string())
         }
         Expr::LetIn(id, bound, body) => {
             let bound_t = typecheck_expr(bound, env)?;
@@ -204,8 +215,9 @@ fn typecheck_expr(expr: &Expr, env: &HashMap<Ident, Type>) -> Result<Type, Strin
         }
         Expr::LetRecFunIn(_, _, _, _) => todo!(),
         Expr::LetRecIn(id, bound, body) => {
-            let bound_t = typecheck_expr(bound, env)?;
             let mut new_env = env.clone();
+            new_env.insert(id.to_string(), Type::Any);
+            let bound_t = typecheck_expr(bound, &new_env)?;
             new_env.insert(id.to_string(), bound_t);
             typecheck_expr(body, &new_env)
         }

@@ -1,7 +1,7 @@
 use crate::lexer::{Lexer, Token};
 
-use crate::ast::{BinaryOperator, Clause, Ident, Pattern, UnaryOperator};
 use crate::ast::Expr;
+use crate::ast::{BinaryOperator, Clause, Ident, Pattern, UnaryOperator};
 
 #[derive(Debug)]
 pub struct Parser {
@@ -377,7 +377,13 @@ impl<'a> Parser {
 
     pub fn program(self) -> Result<Expr, String> {
         match self.expr(0) {
-            Ok((expr, _)) => Ok(expr),
+            Ok((expr, cur)) => {
+                if cur >= self.tokens.len() - 1 {
+                    Ok(expr)
+                } else {
+                    Err("Unconsumed tokens".to_string())
+                }
+            }
             Err(msg) => Err(msg),
         }
     }
